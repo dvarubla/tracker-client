@@ -1,0 +1,200 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset="UTF-8"/>
+    <script type="text/x-template" id="login-form">
+        <div>
+            <div>
+                <label for="login-form_api-url">Путь к API</label>
+                <input v-model="apiUrl" id="login-form_api-url"/>
+            </div>
+            <form>
+                <header>Авторизация</header>
+                <div>
+                    <label for="login-form_login">Логин</label>
+                    <input v-model="login" id="login-form_login"/>
+                </div>
+                <div>
+                    <label for="login-form_password">Пароль</label>
+                    <input v-model="password" id="login-form_password"/>
+                </div>
+                <button @click.prevent="doLogin">Войти</button>
+            </form>
+            <form>
+                <header>Создание нового пользователя</header>
+                <div>
+                    <label for="new-user-form_login">Логин</label>
+                    <input v-model="loginNew" id="new-user-form_login"/>
+                </div>
+                <div>
+                    <label for="new-user-form_password">Пароль</label>
+                    <input v-model="passwordNew" id="new-user-form_password"/>
+                </div>
+                <div>
+                    <label for="new-user-form_name">Имя</label>
+                    <input v-model="nameNew" id="new-user-form_name"/>
+                </div>
+                <button @click.prevent="doRegister">Зарегистрироваться</button>
+            </form>
+        </div>
+    </script>
+
+    <script type="text/x-template" id="users-block">
+        <div>
+            <div>
+                <form id="user-form">
+                    <header>{{activeUser.isAdd ? "Добавление пользователя" : "Редактирование пользователя"}}</header>
+                    <div>
+                        <label for="user-form_login">Логин</label>
+                        <input :disabled="!activeUser.isAdd" v-model="activeUser.login" id="user-form_login"/>
+                    </div>
+                    <div>
+                        <label for="user-form_password">Пароль</label>
+                        <input type="checkbox" v-model="activeUser.editPassword" v-if="!activeUser.isAdd"/>
+                        <input v-model="activeUser.password" id="user-form_password"
+                               :disabled="!activeUser.editPassword"/>
+                    </div>
+                    <div>
+                        <label for="user-form_name">Имя</label>
+                        <input v-model="activeUser.name" id="user-form_name"/>
+                    </div>
+                    <div>
+                        <label for="user-form_role">Роль</label>
+                        <select v-model="activeUser.roleId" id="user-form_role">
+                            <option v-for="role in roles" :value="role.id">{{role.name}}</option>
+                        </select>
+                    </div>
+                    <button @click.prevent="submitUser">{{activeUser.isAdd ? "Добавить" : "Редактировать"}}</button>
+                    <button v-if="!activeUser.isAdd" @click.prevent="stopEdit">Не редактировать</button>
+                </form>
+            </div>
+            <div>Список пользователей</div>
+            <form id="user-search-form">
+                <label for="user-search-form__text">Поиск</label>
+                <input id="user-search-form__text" type="text" v-model="searchText"/>
+            </form>
+            <table>
+                <thead>
+                <tr>
+                    <th>Логин</th>
+                    <th>Имя</th>
+                    <th>Роль</th>
+                    <th colspan="2">Управление</th>
+                </tr>
+                </thead>
+                <tr v-for="user in users">
+                    <td>{{user.login}}</td>
+                    <td>{{user.name}}</td>
+                    <td>{{user.role.name}}</td>
+                    <td>
+                        <button @click.prevent="setCurrentUser(user)">Редактировать</button>
+                    </td>
+                    <td>
+                        <button @click.prevent="removeUser(user)">Удалить</button>
+                    </td>
+                </tr>
+            </table>
+        </div>
+    </script>
+
+    <script type="text/x-template" id="records-block">
+        <div>
+            <div>
+                <form id="record-form">
+                    <header>{{activeRecord.isAdd ? "Добавление записи" : "Редактирование записи"}}</header>
+                    <div>
+                        <label for="record-form_record-date">Дата</label>
+                        <input v-model="activeRecord.recordDate" id="record-form_record-date"/>
+                    </div>
+                    <div>
+                        <label for="record-form_cost">Стоимость</label>
+                        <input v-model="activeRecord.cost" id="record-form_cost"/>
+                    </div>
+                    <div>
+                        <label for="record-form_description">Описание</label>
+                        <input v-model="activeRecord.description" id="record-form_description"/>
+                    </div>
+                    <div>
+                        <label for="record-form_comment">Комментарий</label>
+                        <input v-model="activeRecord.comment" id="record-form_comment"/>
+                    </div>
+                    <button @click.prevent="submitRecord">{{activeRecord.isAdd ? "Добавить" : "Редактировать"}}</button>
+                    <button v-if="!activeRecord.isAdd" @click.prevent="stopEdit">Не редактировать</button>
+                </form>
+            </div>
+            <div>
+                <form id="stat-form">
+                    <header>За период</header>
+                    <label for="stat-form__start">Начало</label>
+                    <input id="stat-form__start" type="text" v-model="search.startDate"/>
+                    <label for="stat-form__end">Конец</label>
+                    <input id="stat-form__end" type="text" v-model="search.endDate"/>
+                    <button @click.prevent="calcAverage">Среднее</button>
+                    <button @click.prevent="calcTotal">Всего</button>
+                </form>
+                <div v-if="search.showValue">Результат: {{search.value}}</div>
+            </div>
+            <div>Список записей</div>
+            <form id="record-search-form">
+                <label for="record-search-form__text">Поиск</label>
+                <input id="record-search-form__text" type="text" v-model="searchText"/>
+            </form>
+            <table>
+                <thead>
+                <tr>
+                    <th>Дата</th>
+                    <th>Стоимость</th>
+                    <th>Описание</th>
+                    <th>Комментарий</th>
+                    <th v-if="currentUser.hasPrivilege('manage_other_records')">Пользователь</th>
+                    <th colspan="2">Управление</th>
+                </tr>
+                </thead>
+                <tr v-for="record in records">
+                    <td>{{record.recordDate}}</td>
+                    <td>{{record.cost}}</td>
+                    <td>{{record.description}}</td>
+                    <td>{{record.comment}}</td>
+                    <td v-if="currentUser.hasPrivilege('manage_other_records')">{{record.user.name}}</td>
+                    <td>
+                        <button @click.prevent="setCurrentRecord(record)">Редактировать</button>
+                    </td>
+                    <td>
+                        <button @click.prevent="removeRecord(record)">Удалить</button>
+                    </td>
+                </tr>
+            </table>
+        </div>
+    </script>
+    <title>Трекер расходов</title>
+</head>
+<body>
+<div id="app">
+    <div v-if="isLogin">
+        <div>Вы зашли как {{currentUser.getName()}}
+            <button @click.prevent="exit">Выйти</button>
+        </div>
+        <div v-if="currentUser.hasPrivilege('manage_users')">
+            <users-block :current-user="currentUser" @edit-current="onEditCurrent"
+                         @remove-current="onRemoveCurrent"></users-block>
+        </div>
+        <div v-if="currentUser.hasPrivilege('manage_own_records') || currentUser.hasPrivilege('manage_other_records')">
+            <records-block :current-user="currentUser" @edit-current="onEditCurrent"></records-block>
+        </div>
+    </div>
+    <div v-else>
+        <login-form @success-login="onSuccessLogin"></login-form>
+    </div>
+</div>
+</body>
+<script src="lib/vue.js"></script>
+<script src="lib/axios.js"></script>
+<script src="lib/underscore.js"></script>
+
+<script src="js/apiClient.js"></script>
+<script src="js/currentUser.js"></script>
+<script src="js/loginForm.js"></script>
+<script src="js/usersBlock.js"></script>
+<script src="js/recordsBlock.js"></script>
+<script src="js/main.js"></script>
+</html>
